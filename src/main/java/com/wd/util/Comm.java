@@ -21,4 +21,8 @@ public class Comm {
 	/*验证已可用ip*/
 	public static final int Type_Pass = 2;
 	
+	public static final int Mysql_Update = 1;
+	
+	public static final int Mysql_Delete = 2;
+	
 }

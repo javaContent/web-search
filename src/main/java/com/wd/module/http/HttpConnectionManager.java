@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 import com.wd.bo.ProxyQueue;
 import com.wd.bo.ProxyInfo;
 import com.wd.dao.ProxyDaoI;
+import com.wd.dao.thread.ProxyThread;
 import com.wd.task.thread.ValidateThread;
 import com.wd.task.validate.ValidateController;
 import com.wd.task.validate.ValidateIP;
@@ -235,7 +236,10 @@ public class HttpConnectionManager {
 				addIpThread.start();
 			}
 		}
-		proxyDao.updateProxy(proxyInfo);
+//		proxyDao.updateProxy(proxyInfo);
+		ProxyThread proxyThread = new ProxyThread(proxyDao, proxyInfo, Comm.Mysql_Update);
+        Thread thread = new Thread(proxyThread,"数据库操作：update");
+        thread.start();
 		return result;
 	}
 	
