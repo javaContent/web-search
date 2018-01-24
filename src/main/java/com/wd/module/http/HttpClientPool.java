@@ -12,11 +12,16 @@ import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+
+import com.wd.bo.ProxyInfo;
+import com.wd.bo.ProxyQueue;
 
 public class HttpClientPool {
 
@@ -29,6 +34,10 @@ public class HttpClientPool {
 	private ArrayBlockingQueue<CloseableHttpClient> clients;
 	
 	private IdleConnectionMonitorThread monitorThread;
+	
+	public ProxyQueue proxyQueueModule;
+	
+	private static  HttpClientBuilder clientBulder;
 
 	public HttpClientPool(String url, int maxConn) {
 		this.url = url;
@@ -71,11 +80,18 @@ public class HttpClientPool {
 	        }
 
 	    };
+	    clientBulder = HttpClients.custom()
+	            .setConnectionManager(cm)
+	            .setKeepAliveStrategy(myStrategy);
+	    CloseableHttpClient httpClient;
 		for (int i = 0; i < maxConn; i++) {
-			CloseableHttpClient httpClient = HttpClients.custom()
-		            .setConnectionManager(cm)
-		            .setKeepAliveStrategy(myStrategy)
-		            .build();
+			if (proxyQueueModule!=null) {
+				ProxyInfo proxyInfo = proxyQueueModule.pollProxy();
+				HttpHost proxy = new HttpHost(proxyInfo.getIp(), Integer.parseInt(proxyInfo.getPort()));
+			    DefaultProxyRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+				clientBulder.setRoutePlanner(routePlanner);
+			}
+			httpClient = clientBulder.build();		
 			clients.add(httpClient);
 		}		
 	}
@@ -96,7 +112,19 @@ public class HttpClientPool {
 	}
 	
 	public void pushBack(CloseableHttpClient client, boolean success){
-		clients.offer(client);
+		CloseableHttpClient httpClient = client;
+		if (!success&&proxyQueueModule!=null) {
+			ProxyInfo proxyInfo = proxyQueueModule.pollProxy();
+			HttpHost proxy = new HttpHost(proxyInfo.getIp(), Integer.parseInt(proxyInfo.getPort()));
+		    DefaultProxyRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+			clientBulder.setRoutePlanner(routePlanner);
+			try {
+				httpClient.close();
+			} catch (IOException e) {
+			}
+			httpClient = clientBulder.build();
+		}
+		clients.offer(httpClient);			
 	}
 	
 	public static class IdleConnectionMonitorThread extends Thread {
@@ -133,5 +161,9 @@ public class HttpClientPool {
         }
 
     }
+
+	public void setProxyQueueModule(ProxyQueue proxyQueueModule) {
+		this.proxyQueueModule = proxyQueueModule;
+	}
 	
 }
