@@ -2,12 +2,14 @@ package com.wd.task.validate;
 
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.wd.bo.ProxyInfo;
 import com.wd.bo.ProxyQueue;
 import com.wd.dao.ProxyDaoI;
+import com.wd.dao.thread.ProxyThread;
 import com.wd.mail.SendMail;
 import com.wd.module.http.DocumentParser;
 import com.wd.module.http.HttpConnectionManager;
@@ -16,6 +18,8 @@ import com.wd.util.Comm;
 
 @Component
 public class ValidateIP {
+	
+	private static final Logger log=Logger.getLogger(ValidateIP.class);
 	
 	@Autowired
 	public DocumentParser googleDocumentParser;
@@ -47,29 +51,46 @@ public class ValidateIP {
 	
 	
 	public void validateList(List<ProxyInfo> list, int type) {
-		if(type == Comm.Type_Queue) {
-			for (int i = 0; i < proxyQueueModule.getProxySize(); i++) {
-				ProxyInfo proxyInfo = proxyQueueModule.pollProxy();
-				boolean isOffer = validate(proxyInfo);
-//				if(!isOffer) break;
+		log.info("validateList：" + type);
+		if(type == Comm.Type_Init) {
+			for (ProxyInfo proxyInfo : list) {
+				boolean isOffer = proxyQueueModule.returnProxy(proxyInfo);
+				if(!isOffer) return;
 			}
 		}
-		for (ProxyInfo proxyInfo : list) {
-			boolean isContent = false;
-			for (int i = 0; i < proxyQueueModule.getProxySize(); i++) {
-				ProxyInfo proxy = proxyQueueModule.peekProxy();
-				if(proxy.getId() == proxyInfo.getId()) {
-					isContent = true;
-					break;
+		if(type == Comm.Type_Queue) {
+			int proxySize =proxyQueueModule.getProxySize();
+			for (int i = 0; i < proxySize; i++) {
+				ProxyInfo proxyInfo = proxyQueueModule.pollProxy();
+				validate(proxyInfo);
+			}
+		}
+		if(type == Comm.Type_No) {
+			for (ProxyInfo proxyInfo : list) {
+				validate(proxyInfo);
+			}
+		} else {
+			for (ProxyInfo proxyInfo : list) {
+				boolean isContent = false;
+				int proxySize =proxyQueueModule.getProxySize();
+				for (int i = 0; i < proxySize; i++) {
+					ProxyInfo proxy = proxyQueueModule.pollProxy();
+					proxyQueueModule.returnProxy(proxy);
+					if(proxy.getId() == proxyInfo.getId()) {
+						isContent = true;
+						break;
+					}
+				}
+				if(!isContent) {
+					log.info("开始验证：" + proxyInfo.getIp());
+					boolean isOffer = validate(proxyInfo);
+					log.info(proxyInfo.getIp() + " ip验证结束");
+					if(!isOffer) break;
 				}
 			}
-			if(!isContent) {
-				boolean isOffer = validate(proxyInfo);
-				if(!isOffer) break;
+			if(proxyQueueModule.getProxySize() < 15) {
+				sendMail.execute("谷歌接口ip数量提醒", "谷歌接口ip数量只剩"+proxyQueueModule.getProxySize()+"！请及时处理！","634764467@qq.com");
 			}
-		}
-		if(proxyQueueModule.getProxySize() < 10) {
-			sendMail.execute("谷歌接口ip数量提醒", "谷歌接口ip数量只剩"+proxyQueueModule.getProxySize()+"！请及时处理！","yangshuaifei@hnwdkj.com");
 		}
 	}
 	/**
@@ -83,7 +104,6 @@ public class ValidateIP {
 			try{
 				QueryResult queryResult = null;
 				String result = null;
-//				HttpClient client = new HttpClient(proxyInfo.getIp(), Integer.parseInt(proxyInfo.getPort()));
 				int n = (int) (1.0D + Math.random() * 10.0D);
 				queryResult = httpClient.query(this.urls[n],null,proxyInfo);
 				if(queryResult != null) {
@@ -108,21 +128,16 @@ public class ValidateIP {
 			}finally{
 			}
 		}
-		if(proxyInfo.getErrCount() >=5) {
-			proxyDao.deleteProxy(proxyInfo);
+		if(proxyInfo.getErrCount() >=4) {
+			ProxyThread proxyThread = new ProxyThread(proxyDao, proxyInfo, Comm.Mysql_Delete);
+	        Thread thread = new Thread(proxyThread,"数据库操作：Delete");
+	        thread.start();
 		} else {
-			proxyDao.updateProxy(proxyInfo);
+			ProxyThread proxyThread = new ProxyThread(proxyDao, proxyInfo, Comm.Mysql_Update);
+	        Thread thread = new Thread(proxyThread,"数据库操作：update");
+	        thread.start();
 		}
 		return isOffer;
-	}
-	/**
-	 * 测试，不进行验证
-	 * @param proxyInfo
-	 * @return
-	 */
-	public boolean validateTest(ProxyInfo proxyInfo) {
-		proxyQueueModule.returnProxy(proxyInfo);
-		return true;
 	}
 	
 }

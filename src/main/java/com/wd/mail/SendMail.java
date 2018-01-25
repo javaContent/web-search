@@ -6,6 +6,8 @@ import org.pzy.module.mail.impl.MailModuleImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.wd.task.thread.ValidateThread;
+
 @Component("sendMail")
 public class SendMail {
 
@@ -25,7 +27,6 @@ public class SendMail {
 
 	public void execute(String title,String content,String email) {
 		MainInfo mailInfo = new MainInfo();
-		
 		mailInfo.setMailServerHost(smtpHost);
 		mailInfo.setMailServerPort("25");
 		mailInfo.setValidate(true);
@@ -35,6 +36,10 @@ public class SendMail {
 		mailInfo.setToAddress(email);
 		mailInfo.setSubject(title);
 		mailInfo.setContent(content);	
-		mailModule.sendSimpleMail(mailInfo);
+//		mailModule.sendSimpleMail(mailInfo);
+		
+		SendMailThread valid = new SendMailThread(mailModule,mailInfo);
+		Thread thread = new Thread(valid,"发送邮件");
+		thread.start();
 	}
 }

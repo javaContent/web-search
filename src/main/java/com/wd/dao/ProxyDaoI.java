@@ -12,6 +12,11 @@ public interface ProxyDaoI {
 	 */
 	public List<ProxyInfo> getProxy();
 	/**
+	 * 
+	 * @return
+	 */
+	public List<ProxyInfo> getProxyInit();
+	/**
 	 * 获取已经验证成功的ip
 	 * @return
 	 */

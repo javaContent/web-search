@@ -34,27 +34,47 @@
 		<property name="documentParser">
 			<bean class="com.wd.module.http.google.GoogleDocumentParser"></bean>
 		</property>
-	<!-- 	<property name="httpConnectionManager" ref="httpClient">
-		</property> -->
 	</bean>
 	
 	<bean id="queryModule" class="com.wd.module.http.HttpQueryModuleDecorator" ><!-- init-method="init" -->
 		<property name="googleQuery" ref="googleQueryModule"></property>
-		<!-- <property name="proxyQuerys">
-			<list>
-				<ref bean="glProxy"/>
-				<ref bean="hkProxy" />
-				<ref bean="v01" />
-			</list>
-		</property> -->
 	</bean>
-	
-	<!-- <bean id="httpClient" class="com.wd.util.HttpConnectionManager">
-	</bean> -->
 
 	<bean id="httpModule" class="com.wd.module.HttpModule">
 		<property name="httpQueryModule" ref="queryModule"/>
 	</bean>
+	
+	<bean id="validateQuartzTask" class="com.wd.task.quartz.ValidateQuartzTask"> <!-- init-method="init" -->
+	</bean>
+	
+	
+	<!-- 任务调度工厂 ，用于管理触发器 -->
+	<bean id="pollingFaction"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
+		destroy-method="destroy">
+		<property name="triggers">
+			<!-- 当有多个触发器是填写在这里 -->
+			<list>
+				<ref local="quartzReloadCacheTrigger" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- 触发器 -->
+	<bean id="quartzReloadCacheTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="quartzReloadCacheBean" />
+		<!-- 每23小时59分钟触发一次 -->
+		<property name="cronExpression" value="0 30 0/06 * * ?" />
+	</bean>
+
+	<!-- 任务类 -->
+	<!-- 缓存重加载任务 -->
+	<bean id="quartzReloadCacheBean"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="validateQuartzTask" />
+		<property name="targetMethod" value="execute" />
+	</bean>
+	
 
 	<bean id="searchForWebService" class="com.wd.service.impl.SearchForWebServiceImpl">
 		<property name="httpModule" ref="httpModule" />

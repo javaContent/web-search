@@ -56,10 +56,10 @@ public class GoogleQueryModule extends HttpQueryModule {
 		Boolean priority = false;
 		if(num > 0) priority = true;
 		log.info("进入Google，num=" + num);
-		if(num == 3) {
-			return null;
-		}
 		String result = null;
+		if(num == 3) {
+			return result;
+		}
 		try {
 			result = httpConnectionManager.query(url,type,priority);
 			if(result == null) {

@@ -3,10 +3,12 @@ package com.wd.task.thread;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.wd.bo.ProxyInfo;
 import com.wd.dao.ProxyDaoI;
+import com.wd.task.validate.ValidateController;
 import com.wd.task.validate.ValidateIP;
 /**
  * ip验证线程
@@ -14,6 +16,8 @@ import com.wd.task.validate.ValidateIP;
  *
  */
 public class ValidateThread implements Runnable {
+	
+	private static final Logger log=Logger.getLogger(ValidateThread.class);
 
 	private ValidateIP validate;
 	
@@ -32,9 +36,14 @@ public class ValidateThread implements Runnable {
 
 	@Override
 	public void run() {
-		validate.validateList(list, type);
-		// 倒数器减1  
-        countDownLatch.countDown();  
+		try {
+			validate.validateList(list, type);
+		} catch(Exception e) {
+		} finally {
+			// 倒数器减1  
+			countDownLatch.countDown();  
+			log.info("countDownLatch: " + countDownLatch.getCount());
+		}
 	}
 
 }

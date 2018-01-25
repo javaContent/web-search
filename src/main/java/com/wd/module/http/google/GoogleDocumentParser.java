@@ -100,7 +100,8 @@ public class GoogleDocumentParser implements DocumentParser<String>{
 			}
 		}
 		extractDocList(list, doc);
-		Elements elements = doc.select("#gs_lnv_ylo li a");
+//		Elements elements = doc.select("#gs_lnv_ylo li a");
+		Elements elements = doc.select("#gs_res_sb_yyl li a");
 		Iterator<Element> iterEle = elements.iterator();
 		while (iterEle.hasNext()) {
 			Element ele = iterEle.next();

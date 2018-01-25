@@ -1,5 +1,8 @@
 package com.wd.task.quartz;
 
+import javax.annotation.PostConstruct;
+
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -9,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.wd.bo.ProxyQueue;
 import com.wd.dao.ProxyDaoI;
+import com.wd.mail.SendMail;
 import com.wd.task.validate.ValidateController;
 import com.wd.task.validate.ValidateIP;
 import com.wd.util.Comm;
@@ -18,11 +22,10 @@ import com.wd.util.Comm;
  * @author Administrator
  *
  */
-@Component
-@Configuration
-@EnableAsync
-@EnableScheduling
+//@Component("validateQuartzTask")
 public class ValidateQuartzTask {
+	
+	private static final Logger log=Logger.getLogger(ValidateQuartzTask.class);
 	
 	@Autowired
 	public ValidateIP validate;
@@ -30,11 +33,21 @@ public class ValidateQuartzTask {
 	@Autowired
 	public ProxyDaoI proxyDao;
 	
-	@Scheduled(cron="0 30 0/6 * * ?")
-    public void doSomeWork(){
+	@Autowired
+	private SendMail sendMail;
+	
+    public void execute(){
 		ValidateController validPass = new ValidateController(validate,proxyDao,Comm.Type_Queue);
-        Thread threadPass = new Thread(validPass,"初始化：验证已可用ip");
+        Thread threadPass = new Thread(validPass,"定时验证验证已可用ip");
         threadPass.start();
+        log.info("定时验证验证已可用ip");
+    }
+	
+	public void init(){
+		ValidateController validPass = new ValidateController(validate,proxyDao,Comm.Type_No);
+        Thread threadPass = new Thread(validPass,"持续验证采集ip");
+        threadPass.start();
+        log.info("持续验证采集ip");
     }
 
 }

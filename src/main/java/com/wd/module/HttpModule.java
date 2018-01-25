@@ -53,15 +53,15 @@ public class HttpModule {
 	 * @return
 	 */
 	private String getFromCache(String key){
-//		String val = null;
-//		try {//先检查缓存
-//			val = (String) searchCache.get(key);
-//		} catch (NeedsRefreshException e1) {
-//		}
-//		if (null != val && !"".equals(val)) {
-//			// 缓存中有检索结果，直接使用缓存的结果
-//			return val;
-//		}
+		String val = null;
+		try {//先检查缓存
+			val = (String) searchCache.get(key);
+		} catch (NeedsRefreshException e1) {
+		}
+		if (null != val && !"".equals(val)) {
+			// 缓存中有检索结果，直接使用缓存的结果
+			return val;
+		}
 		return null;
 	}
 	

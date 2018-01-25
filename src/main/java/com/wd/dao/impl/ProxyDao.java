@@ -45,6 +45,35 @@ public class ProxyDao extends MySQLUtil implements ProxyDaoI  {
 	}
 	
 	@Override
+	public List<ProxyInfo> getProxyInit() {
+		String sql="select id,ip,port,success_times as successTimes, err_count as errCount from ips where validate=1 and success_times > 0 ORDER BY err_count";
+		Connection connection = null;
+		Statement state=null;
+		ResultSet rs=null;
+		List<ProxyInfo> list = new ArrayList();
+		try{
+			connection = getConnection();
+			state=connection.createStatement();
+			rs=state.executeQuery(sql);
+			while(rs.next()){
+				ProxyInfo proxyInfo=new ProxyInfo();
+				proxyInfo.setId(rs.getInt("id"));
+				proxyInfo.setIp(rs.getString("ip"));
+				proxyInfo.setPort(rs.getString("port"));
+				proxyInfo.setSuccessCount(rs.getInt("successTimes"));
+				proxyInfo.setErrCount(rs.getInt("errCount"));
+				proxyInfo.setLevel(1);			//优先级（暂时默认）
+				list.add(proxyInfo);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			closeAll(connection, state, rs);
+		}
+		return list;
+	}
+	
+	@Override
 	public List<ProxyInfo> getProxyPass() {
 		String sql="select id,ip,port,success_times as successTimes, err_count as errCount from ips where validate=1 and success_times > 0 ORDER BY id DESC";
 		Connection connection = null;
@@ -75,7 +104,7 @@ public class ProxyDao extends MySQLUtil implements ProxyDaoI  {
 	
 	@Override
 	public List<ProxyInfo> getProxyNo() {
-		String sql="select id,ip,port,success_times as successCount, err_count as errCount from ips where validate=0 and success_times is null";
+		String sql="select id,ip,port,success_times as successCount, err_count as errCount from ips where validate = 0 and success_times = 0";
 		Connection connection = null;
 		Statement state=null;
 		ResultSet rs=null;
@@ -128,20 +157,20 @@ public class ProxyDao extends MySQLUtil implements ProxyDaoI  {
 
 	@Override
 	public void deleteProxy(ProxyInfo proxyInfo) {
-		String sql = "delete from ips where id = ? ";
-		Connection connection = null;
-		PreparedStatement state=null;
+		String sql = "delete from ips where id = " + proxyInfo.getId();
+		Connection con = null;
+		PreparedStatement pstm=null;
 		ResultSet rs=null;
 		int result = 0;
 		try{
-			connection =getConnection();
-			state = connection.prepareStatement(sql);
-			state.setInt(1, proxyInfo.getId());
-			result = state.executeUpdate(sql);
+			con =getConnection();
+			pstm = con.prepareStatement(sql);
+//			pstm.setInt(1, proxyInfo.getId());
+			pstm.execute(sql);
 		}catch(Exception e){
 			e.printStackTrace();
 		}finally{
-			closeAll(connection, state, rs);
+			closeAll(con, pstm, rs);
 		}
 	}
 

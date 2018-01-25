@@ -70,7 +70,28 @@ public class HttpClient {
 		BasicCookieStore cookieStore = new BasicCookieStore();
 		HttpClientBuilder clientBuilder = HttpClients.custom()
 				.setDefaultCookieStore(cookieStore);
-		clientBuilder.setConnectionManager(cm);
+		
+		RequestConfig requestConfig = null;
+		RequestConfig.Builder builder = RequestConfig
+			.custom()
+			.setCookieSpec("best-match")
+			.setExpectContinueEnabled(true)
+			.setStaleConnectionCheckEnabled(true)
+			.setTargetPreferredAuthSchemes(
+					Arrays.asList(new String[] { "NTLM", "Digest" }))
+			.setProxyPreferredAuthSchemes(
+					Arrays.asList(new String[] { "Basic" }))
+			.setSocketTimeout(Comm.READ_TIMEOUT)
+			.setConnectTimeout(Comm.CONNECT_TIMEOUT)
+			.setConnectionRequestTimeout(Comm.REQYEST_TIMEOUT);
+		requestConfig = builder.build();
+		
+		
+		clientBuilder.setConnectionManager(cm)
+		.setDefaultRequestConfig(requestConfig);
+		;
+		
+		
 		CloseableHttpClient httpClient = clientBuilder.build();
 		return httpClient;
     }
@@ -107,7 +128,7 @@ public class HttpClient {
 			.setSocketTimeout(Comm.READ_TIMEOUT)
 			.setConnectTimeout(Comm.CONNECT_TIMEOUT)
 			.setConnectionRequestTimeout(Comm.REQYEST_TIMEOUT);
-		if ((StringUtils.isEmpty(proxyInfo.getIp())) || (proxyInfo.getIp().equals("127.0.0.1"))
+		if (proxyInfo == null || (StringUtils.isEmpty(proxyInfo.getIp())) || (proxyInfo.getIp().equals("127.0.0.1"))
 				|| (proxyInfo.getIp().equals("localhost")))
 			requestConfig = builder.build();
 		else {
@@ -138,9 +159,7 @@ public class HttpClient {
 				result = null;
 			}
 		} catch (SSLException e) {
-			System.out.println("需要证书");
 		} catch (Exception e) {
-			System.out.println("无法链接代理ip");
 		} finally {
 			if (resp != null)
 				try {
