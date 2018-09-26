@@ -4,11 +4,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import org.apache.cxf.common.util.StringUtils;
+import org.springframework.stereotype.Component;
 
 import com.wd.bo.Condition;
 import com.wd.bo.ConditionGroup;
 import com.wd.module.http.QueryStringBuilder;
 
+@Component
 public class GoogleQueryStringBuilder implements QueryStringBuilder{
 	
 	private String buildGroup(ConditionGroup group){
@@ -104,33 +106,18 @@ public class GoogleQueryStringBuilder implements QueryStringBuilder{
 			}else {//任何位置检索
 				urlSB.append("&as_occt=any");
 				urlSB.append("&q=").append(URLEncoder.encode(value, "UTF-8"));
+//				urlSB.append("&q=").append(value);
 			}
 		}
-		/*//期刊设置
-		if (!StringUtils.isEmpty(cdt.getJournal())) {
-			urlSB.append("&as_publication=").append(URLEncoder.encode(cdt.getJournal(), "UTF-8"));
-		}*/
 
 		//设置分页
 		if(cdt.getOffset() != 0) {
 			urlSB.append("&start=").append(cdt.getOffset());
-			//urlSB.append("&num=").append(cdt.getSize());
-			urlSB.append("&num=").append(10);
+			urlSB.append("&num=").append(20);
+		} else {
+			urlSB.append("&num=").append(20);
 		}
 		
-
-		/*
-		//时间方位设置
-		if ((null == cdt.getSort()) || (1 != cdt.getSort())) {//没有设置检索时间，或者检索条件值不为1
-			if (null != cdt.getStart_y()) {
-				urlSB.append("&as_ylo=").append(cdt.getStart_y());
-			}
-			if (null != cdt.getEnd_y()) {
-				urlSB.append("&as_yhi=").append(cdt.getEnd_y());
-			}
-		} else {//按日期排序
-			urlSB.append("&scisbd=1");
-		}*/
 		if(null !=cdt.getStart_y() || null != cdt.getEnd_y()){//如果有日期筛选，那么将忽略日期排序。
 			if (null != cdt.getStart_y()) {
 				urlSB.append("&as_ylo=").append(cdt.getStart_y());
@@ -153,7 +140,7 @@ public class GoogleQueryStringBuilder implements QueryStringBuilder{
 	@Override
 	public String getBaseURL() {
 		//香港
-		return "http://scholar.google.com";
+		return "https://scholar.google.com:7090";
 		//韩国
 		//return "http://scholar.google.co.kr";
 	}

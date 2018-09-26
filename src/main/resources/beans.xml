@@ -16,15 +16,19 @@
      	 http://cxf.apache.org/jaxws 
          http://cxf.apache.org/schemas/jaxws.xsd">
 
+	<context:annotation-config />
+	<aop:aspectj-autoproxy />
+
 	<import resource="classpath:META-INF/cxf/cxf.xml" />
 	<import resource="classpath:META-INF/cxf/cxf-extension-soap.xml" />
 	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
 
-	<context:annotation-config />
-	<context:component-scan base-package="com.wd" />
+	<context:component-scan base-package="com.wd">
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
 
-	<bean id='SpringContextUtil' class='com.wd.util.SpringContextUtil' />
-	<context:property-placeholder location="classpath:journal_navication_mail.properties,classpath:proxies.properties" />
+	<context:property-placeholder location="classpath:jdbc.properties" />
 
 	<!-- 直接使用Google -->
 	<bean id="googleQueryModule" class="com.wd.module.http.google.GoogleQueryModule">
@@ -43,38 +47,6 @@
 	<bean id="httpModule" class="com.wd.module.HttpModule">
 		<property name="httpQueryModule" ref="queryModule"/>
 	</bean>
-	
-	<bean id="validateQuartzTask" class="com.wd.task.quartz.ValidateQuartzTask"> <!-- init-method="init" -->
-	</bean>
-	
-	
-	<!-- 任务调度工厂 ，用于管理触发器 -->
-	<bean id="pollingFaction"
-		class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
-		destroy-method="destroy">
-		<property name="triggers">
-			<!-- 当有多个触发器是填写在这里 -->
-			<list>
-				<ref local="quartzReloadCacheTrigger" />
-			</list>
-		</property>
-	</bean>
-
-	<!-- 触发器 -->
-	<bean id="quartzReloadCacheTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
-		<property name="jobDetail" ref="quartzReloadCacheBean" />
-		<!-- 每23小时59分钟触发一次 -->
-		<property name="cronExpression" value="0 30 0/06 * * ?" />
-	</bean>
-
-	<!-- 任务类 -->
-	<!-- 缓存重加载任务 -->
-	<bean id="quartzReloadCacheBean"
-		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-		<property name="targetObject" ref="validateQuartzTask" />
-		<property name="targetMethod" value="execute" />
-	</bean>
-	
 
 	<bean id="searchForWebService" class="com.wd.service.impl.SearchForWebServiceImpl">
 		<property name="httpModule" ref="httpModule" />

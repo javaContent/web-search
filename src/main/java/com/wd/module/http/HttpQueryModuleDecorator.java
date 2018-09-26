@@ -17,17 +17,11 @@ public class HttpQueryModuleDecorator extends HttpQueryModule{
 	
 	private static final Logger log=Logger.getLogger(HttpQueryModuleDecorator.class);
 	
-/*	@Resource
-	private SendMail mailSender;*/
 	
 	/**
 	 * 使用原生的Google检索，作为备用检索方式，在最后使用
 	 */
 	private HttpQueryModule googleQuery;
-	/**
-	 * Google代理列表
-	 */
-	//private List<HttpQueryModule> proxyQuerys;
 	
 	@Override
 	public String query(Condition cdt) {
@@ -37,9 +31,6 @@ public class HttpQueryModuleDecorator extends HttpQueryModule{
 	private String queryFromProxys(final Condition cdt){
 		String result= null;
 		result = queryFromGoogle(cdt);
-	/*	if(result != null) {
-			return result;
-		}*/
 		return result;
 
 	}

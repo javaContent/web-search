@@ -89,7 +89,6 @@ public class HttpModule {
 		if(!StringUtils.isEmpty(result)&&!"{\"count\":\"\",\"timeMap\":{},\"rows\":[]}".equals(result)){
 		return result;
 		}
-	
 		result=query(cdt);
 		if("{\"count\":\"\",\"timeMap\":{},\"rows\":[]}".equals(result)||StringUtils.isEmpty(result)){//没有数据
 			throw new RuntimeException("下载内容为空!");

@@ -72,66 +72,60 @@ public class GoogleDocumentParser implements DocumentParser<String>{
 				return false;
 			}else if(content.contains("我们无法对您进行人机身份验证")){
 				return false;
-			}//recaptcha/api.js 验证的js
+			}
 		}
 		return true;
 	}
 	
 	public String parser(String docStr){
-		Document doc=Jsoup.parse(docStr);//JSoupe解析文档
-		if(!validateDocument(doc)) return "出现验证码";
 		try{
-		List<SearchDocument> list = new ArrayList<SearchDocument>();
-		Map<String, String> timeMap = new LinkedHashMap<String, String>(3);
-		String count = "";
-		Element totalElement = doc.getElementById("gs_ab_md");
-		if (null != totalElement) {
-			String text = totalElement.text();
-			Pattern pattern = Pattern.compile("约 (.*) 条");
-			Matcher matcher = pattern.matcher(text);
-			if (matcher.find()) {
-				count = matcher.group(1).trim();
-			} else {
-				pattern = Pattern.compile("获得(.*)条");
-				matcher = pattern.matcher(text);
+			Document doc=Jsoup.parse(docStr);//JSoupe解析文档
+			if(!validateDocument(doc)) return "出现验证码";
+			List<SearchDocument> list = new ArrayList<SearchDocument>();
+			Map<String, String> timeMap = new LinkedHashMap<String, String>(3);
+			String count = "";
+			Element totalElement = doc.getElementById("gs_ab_md");
+			if (null != totalElement) {
+				String text = totalElement.text();
+				Pattern pattern = Pattern.compile("约 (.*) 条");
+				Matcher matcher = pattern.matcher(text);
 				if (matcher.find()) {
 					count = matcher.group(1).trim();
+				} else {
+					pattern = Pattern.compile("获得(.*)条");
+					matcher = pattern.matcher(text);
+					if (matcher.find()) {
+						count = matcher.group(1).trim();
+					}
 				}
 			}
-		}
-		extractDocList(list, doc);
-//		Elements elements = doc.select("#gs_lnv_ylo li a");
-		Elements elements = doc.select("#gs_res_sb_yyl li a");
-		Iterator<Element> iterEle = elements.iterator();
-		while (iterEle.hasNext()) {
-			Element ele = iterEle.next();
-			String time = ele.text();
-			if (time.matches("^[0-9].*")) {
-				Matcher matcher = pattern.matcher(time);
-				if (matcher.find()) {
-					timeMap.put(matcher.group(), time);
+			extractDocList(list, doc);
+	//		Elements elements = doc.select("#gs_lnv_ylo li a");
+			Elements elements = doc.select("#gs_res_sb_yyl li a");
+			Iterator<Element> iterEle = elements.iterator();
+			while (iterEle.hasNext()) {
+				Element ele = iterEle.next();
+				String time = ele.text();
+				if (time.matches("^[0-9].*")) {
+					Matcher matcher = pattern.matcher(time);
+					if (matcher.find()) {
+						timeMap.put(matcher.group(), time);
+					}
 				}
 			}
-		}
-		/*if(list.size()==0){
-			log.error("解析内容为空:"+doc);
-			return null;
-		}*/
-		if(count==null||StringUtils.isEmpty(count)){//如果没有解析到数量，原因是Google数据量少于1页
-			count=list.size()+"";
-		}
-		String result="{\"count\":\"" + count + "\",\"timeMap\":" + JsonUtil.obj2Json(timeMap) + ",\"rows\":" + JsonUtil.obj2Json(list) + "}";
-		/*if("{\"count\":\"\",\"timeMap\":{},\"rows\":[]}".equals(result)){//没有数据
-			return null;
-		}*/
-		log.debug("获取结果:"+result);
-		return  result;
+			if(count==null||StringUtils.isEmpty(count)){//如果没有解析到数量，原因是Google数据量少于1页
+				count=list.size()+"";
+			}
+			String result="{\"count\":\"" + count + "\",\"timeMap\":" + JsonUtil.obj2Json(timeMap) + ",\"rows\":" + JsonUtil.obj2Json(list) + "}";
+			log.debug("获取结果:"+result);
+			return result;
 		}catch(Exception e){
-			try {
-				throw new Exception("解析结果出错!",e);
-			} catch (Exception e1) {
-				e1.printStackTrace();
-			}
+			e.printStackTrace();
+//			try {
+//				throw new Exception("解析结果出错!",e);
+//			} catch (Exception e1) {
+//				e1.printStackTrace();
+//			}
 			return  null;
 		}
 	}
@@ -141,7 +135,7 @@ public class GoogleDocumentParser implements DocumentParser<String>{
 	private static final String simpleStart = "&lt;%s&gt;";
 	private static final String simpleEnd = "&lt;/%s&gt;";
 
-	private void extractDocList(List<SearchDocument> list, Document doc) {
+	private void extractDocList(List<SearchDocument> list, Document doc) throws Exception {
 		Elements elements = doc.select("#gs_bdy .gs_r");
 		Iterator<Element> iterEle = elements.iterator();
 		/*Elements elements = doc.select("#gs_res_bdy .gs_r");
@@ -160,6 +154,9 @@ public class GoogleDocumentParser implements DocumentParser<String>{
 			Elements titleEles = ele.select(".gs_ri h3.gs_rt a");
 			if (titleEles.isEmpty()) {
 				titleEles = ele.select(".gs_ri h3.gs_rt");
+			}
+			if(titleEles.isEmpty()) {
+				continue;
 			}
 			Element titleEle = titleEles.listIterator().next();
 			String title = titleEle.html().replaceAll("\'", "&apos;").replaceAll(String.format(simpleStart, "[ ]*sub"), "<sub>").replaceAll(String.format(simpleEnd, "sub"), "</sub>");
@@ -265,25 +262,31 @@ public class GoogleDocumentParser implements DocumentParser<String>{
 	
 	@Override
 	public String parserQuote(String docStr) {
-		Document doc=Jsoup.parse(docStr);//JSoupe解析文档
-		if(!validateDocument(doc)) return "出现验证码";
-		String t1 = "GB/T 7714";
-		String r1 = docStr.substring(docStr.indexOf("GB/T 7714")+9, docStr.indexOf("MLA"));
-		r1 = r1.substring(r1.indexOf("<div"), r1.indexOf("</div>"));
-		String t2 = "MLA";
-		String r2 = docStr.substring(docStr.indexOf("MLA")+3, docStr.indexOf("APA"));
-		r2 = r2.substring(r2.indexOf("<div"), r2.indexOf("</div>"));
-		String t3 = "APA";
-		String r3 = docStr.substring(docStr.indexOf("APA")+3, docStr.indexOf("BibTeX"));
-		r3 = r3.substring(r3.indexOf("<div"), r3.indexOf("</div>"));
-		JSONObject obj=new JSONObject();
-		obj.put("t1", t1);
-		obj.put("t2", t2);
-		obj.put("t3", t3);
-		obj.put("r1", r1);
-		obj.put("r2", r2);
-		obj.put("r3", r3);
-		return obj.toString();
+		String reuslt = null;
+		try {
+			JSONObject obj=new JSONObject();
+			Document doc=Jsoup.parse(docStr);//JSoupe解析文档
+			if(!validateDocument(doc)) return "出现验证码";
+			String t1 = "GB/T 7714";
+			String r1 = docStr.substring(docStr.indexOf("GB/T 7714")+9, docStr.indexOf("MLA"));
+			r1 = r1.substring(r1.indexOf("<div"), r1.indexOf("</div>"));
+			String t2 = "MLA";
+			String r2 = docStr.substring(docStr.indexOf("MLA")+3, docStr.indexOf("APA"));
+			r2 = r2.substring(r2.indexOf("<div"), r2.indexOf("</div>"));
+			String t3 = "APA";
+			String r3 = docStr.substring(docStr.indexOf("APA")+3, docStr.indexOf("BibTeX"));
+			r3 = r3.substring(r3.indexOf("<div"), r3.indexOf("</div>"));
+			
+			obj.put("t1", t1);
+			obj.put("t2", t2);
+			obj.put("t3", t3);
+			obj.put("r1", r1);
+			obj.put("r2", r2);
+			obj.put("r3", r3);
+			reuslt = obj.toString();
+		} catch(Exception e) {
+		}
+		return reuslt;
 	}
 
 }
